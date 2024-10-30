@@ -1,0 +1,81 @@
+<html>
+<head></head>
+<body>
+    <script>
+        var YOUR_CLIENT_ID = '1064217439704-8rkl60decijaadegh355huj0mng80nv7.apps.googleusercontent.com';
+        var YOUR_REDIRECT_URI = 'http://localhost:8080';
+
+        // Parse query string to see if page request is coming from OAuth 2.0 server.
+        var fragmentString = location.hash.substring(1);
+        var params = {};
+        var regex = /([^&=]+)=([^&]*)/g, m;
+        while (m = regex.exec(fragmentString)) {
+            params[decodeURIComponent(m[1])] = decodeURIComponent(m[2]);
+        }
+        if (Object.keys(params).length > 0 && params['nonce']) {
+            if (params['nonce'] == localStorage.getItem('nonce')) {
+                localStorage.setItem('oauth2-test-params', JSON.stringify(params));
+                trySampleRequest();
+            } else {
+                console.log('nonce mismatch. Possible CSRF attack');
+            }
+        }
+
+        // Function to generate a random nonce value
+        function generateCryptoRandomNonce() {
+            return 'abs';
+        }
+
+        // If there's an id_token, output the response
+        function trySampleRequest() {
+            var params = JSON.parse(localStorage.getItem('oauth2-test-params'));
+            if (params && params['id_token']) {
+                document.body.innerHTML += `<p>Response: ${JSON.stringify(params)}</p>`;
+            } else {
+                oauth2SignIn();
+            }
+        }
+
+        /*
+         * Create form to request id_token from Google's OAuth 2.0 server.
+         */
+        function oauth2SignIn() {
+            // Create random nonce value and store in local storage
+            var nonce = generateCryptoRandomNonce();
+            localStorage.setItem('nonce', nonce);
+
+            // Google's OAuth 2.0 endpoint for requesting an id_token
+            var oauth2Endpoint = 'https://accounts.google.com/o/oauth2/v2/auth';
+
+            // Create element to open OAuth 2.0 endpoint in new window.
+            var form = document.createElement('form');
+            form.setAttribute('method', 'GET'); // Send as a GET request.
+            form.setAttribute('action', oauth2Endpoint);
+
+            // Parameters to pass to OAuth 2.0 endpoint.
+            var params = {
+                'client_id': YOUR_CLIENT_ID,
+                'redirect_uri': YOUR_REDIRECT_URI,
+                'scope': 'email openid',
+                'nonce': nonce,
+                'response_type': 'id_token'
+            };
+
+            // Add form parameters as hidden input values.
+            for (var p in params) {
+                var input = document.createElement('input');
+                input.setAttribute('type', 'hidden');
+                input.setAttribute('name', p);
+                input.setAttribute('value', params[p]);
+                form.appendChild(input);
+            }
+
+            // Add form to page and submit it to open the OAuth 2.0 endpoint.
+            document.body.appendChild(form);
+            form.submit();
+        }
+    </script>
+
+    <button onclick="trySampleRequest();">Try sample request</button>
+</body>
+</html>
